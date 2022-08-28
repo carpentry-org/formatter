@@ -9,23 +9,105 @@
   (defdynamic indent-width 2)
   (defdynamic max-line-width 80)
 
-  (defndynamic format-list [code seq]
+  (defndynamic format-let-array [code seq]
     (do
-      (set! seq (cons-last "(" seq))
-      (set! seq (cons-last 'indent seq))
+      (set! seq (cons-last "[" seq))
+      (set! seq (cons-last 'indent-to-current seq))
       (when (not (empty? code))
         (do
           (set! seq (Format.format- (car code) seq))
+          (set! seq (cons-last " " seq))
+          (set! seq (Format.format- (cadr code) seq))
+          (set! seq (reduce
+            (fn [acc pair]
+              (do
+                (set! acc
+                  (Format.format-
+                    (car pair)
+                    (cons-last 'hardbreak acc)))
+                (set! acc (cons-last " " acc))
+                (Format.format- (cadr pair) acc)))
+             seq
+             (List.pairs (cddr code))))))
+      (set! seq (cons-last "]" seq))
+      (set! seq (cons-last 'dedent seq))
+      seq))
+
+  (defndynamic format-let [code seq]
+    (do
+      (set! seq (Format.format-let-array (car code) seq))
+      (set! seq (reduce
+        (fn [acc elem]
+            (Format.format-
+              elem
+              (cons-last 'hardbreak acc)))
+         seq
+         (cdr code)))
+      (set! seq (cons-last ")" seq))
+      (cons-last 'dedent seq)))
+
+  (defndynamic format-list [code seq]
+    (cond
+      (empty? code)
+        (cons-last "()" seq)
+      (= (car code) 'do)
+        (do
+          (set! seq (cons-last "(do" seq))
+          (set! seq (cons-last 'indent seq))
+          (set! seq (cons-last 'hardbreak seq))
           (set! seq (reduce
             (fn [acc elem]
                 (Format.format-
                   elem
                   (cons-last (if (> (Dynamic.length code) 3) 'hardbreak 'softbreak) acc)))
              seq
-             (cdr code)))))
-      (set! seq (cons-last ")" seq))
-      (set! seq (cons-last 'dedent seq))
-      seq))
+             (cdr code)))
+          (set! seq (cons-last ")" seq))
+          (cons-last 'dedent seq))
+      (List.in? (car code) ['let 'let-do])
+        (do
+          (set! seq (cons-last "(" seq))
+          (set! seq (cons-last (str (car code)) seq))
+          (set! seq (cons-last 'indent seq))
+          (set! seq (cons-last " " seq))
+          (Format.format-let (cdr code) seq))
+      (List.in? (car code) ['def 'defdynamic])
+        (do
+          (set! seq (cons-last "(" seq))
+          (set! seq (cons-last (str (car code)) seq))
+          (set! seq (cons-last 'indent seq))
+          (set! seq (cons-last " " seq))
+          (set! seq (cons-last (str (cadr code)) seq))
+          (set! seq (cons-last 'hardbreak seq))
+          (set! seq (Format.format- (caddr code) seq))
+          (set! seq (cons-last ")" seq))
+          (cons-last 'dedent seq))
+      (List.in? (car code) ['defn 'defndynamic])
+        (do
+          (set! seq (cons-last "(" seq))
+          (set! seq (cons-last (str (car code)) seq))
+          (set! seq (cons-last 'indent seq))
+          (set! seq (cons-last " " seq))
+          (set! seq (cons-last (str (cadr code)) seq))
+          (set! seq (cons-last 'softbreak seq))
+          (set! seq (Format.format- (caddr code) seq))
+          (set! seq (cons-last 'hardbreak seq))
+          (set! seq (Format.format- (cadddr code) seq))
+          (set! seq (cons-last ")" seq))
+          (cons-last 'dedent seq))
+      (do
+        (set! seq (cons-last "(" seq))
+        (set! seq (cons-last 'indent seq))
+        (set! seq (Format.format- (car code) seq))
+        (set! seq (reduce
+          (fn [acc elem]
+              (Format.format-
+                elem
+                (cons-last (if (> (Dynamic.length code) 3) 'hardbreak 'softbreak) acc)))
+           seq
+           (cdr code)))
+        (set! seq (cons-last ")" seq))
+        (cons-last 'dedent seq))))
 
   (defndynamic format-array [code seq]
     (do
