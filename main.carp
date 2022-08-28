@@ -81,6 +81,18 @@
         (do
           (set! seq (cons-last "'" seq))
           (Format.format- (cadr code) seq))
+      (= (car code) 'quasiquote)
+        (do
+          (set! seq (cons-last "`" seq))
+          (Format.format- (cadr code) seq))
+      (= (car code) 'unquote)
+        (do
+          (set! seq (cons-last "%" seq))
+          (Format.format- (cadr code) seq))
+      (= (car code) 'unquote-splicing)
+        (do
+          (set! seq (cons-last "%@" seq))
+          (Format.format- (cadr code) seq))
       (= (car code) ref)
         (do
           (set! seq (cons-last "&" seq))
