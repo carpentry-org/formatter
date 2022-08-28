@@ -77,6 +77,22 @@
              (cddr code)))
           (set! seq (cons-last ")" seq))
           (cons-last 'dedent seq))
+      (= (car code) 'quote)
+        (do
+          (set! seq (cons-last "'" seq))
+          (Format.format- (cadr code) seq))
+      (= (car code) ref)
+        (do
+          (set! seq (cons-last "&" seq))
+          (Format.format- (cadr code) seq))
+      (= (car code) 'copy)
+        (do
+          (set! seq (cons-last "@" seq))
+          (Format.format- (cadr code) seq))
+      (= (car code) deref)
+        (do
+          (set! seq (cons-last "~" seq))
+          (Format.format- (cadr code) seq))
       (List.in? (car code) ['let 'let-do])
         (do
           (set! seq (cons-last "(" seq))
@@ -106,6 +122,16 @@
           (set! seq (Format.format- (caddr code) seq))
           (set! seq (cons-last 'hardbreak seq))
           (set! seq (Format.format- (cadddr code) seq))
+          (set! seq (cons-last ")" seq))
+          (cons-last 'dedent seq))
+      (= (car code) 'fn)
+        (do
+          (set! seq (cons-last "(fn" seq))
+          (set! seq (cons-last 'indent seq))
+          (set! seq (cons-last 'softbreak seq))
+          (set! seq (cons-last (str (cadr code)) seq))
+          (set! seq (cons-last 'hardbreak seq))
+          (set! seq (Format.format- (caddr code) seq))
           (set! seq (cons-last ")" seq))
           (cons-last 'dedent seq))
       (do
