@@ -54,14 +54,27 @@
         (do
           (set! seq (cons-last "(do" seq))
           (set! seq (cons-last 'indent seq))
-          (set! seq (cons-last 'hardbreak seq))
           (set! seq (reduce
             (fn [acc elem]
                 (Format.format-
                   elem
-                  (cons-last (if (> (Dynamic.length code) 3) 'hardbreak 'softbreak) acc)))
+                  (cons-last 'hardbreak 'softbreak acc)))
              seq
              (cdr code)))
+          (set! seq (cons-last ")" seq))
+          (cons-last 'dedent seq))
+      (= (car code) 'defmodule)
+        (do
+          (set! seq (cons-last "(defmodule " seq))
+          (set! seq (cons-last (str (cadr code)) seq))
+          (set! seq (cons-last 'indent seq))
+          (set! seq (reduce
+            (fn [acc elem]
+                (Format.format-
+                  elem
+                  (cons-last 'hardbreak acc)))
+             seq
+             (cddr code)))
           (set! seq (cons-last ")" seq))
           (cons-last 'dedent seq))
       (List.in? (car code) ['let 'let-do])
@@ -133,6 +146,8 @@
         (Format.format-list code seq)
       (array? code)
         (Format.format-array code seq)
+      (string? code)
+        (cons-last (String.concat ["\"" code "\""]) seq)
       (cons-last (str code) seq)))
 
   (defndynamic treat-softbreak [parts col indentation]
