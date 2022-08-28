@@ -1,0 +1,108 @@
+(defmodule Dynamic
+  (defmodule List
+    (defndynamic sum [xs]
+      (reduce + 0 xs))
+  )
+)
+
+(defmodule Format
+  (defdynamic indent-width 2)
+  (defdynamic max-line-width 80)
+
+  (defndynamic format-list [code seq]
+    (do
+      (set! seq (cons-last "(" seq))
+      (set! seq (cons-last 'indent seq))
+      (when (not (empty? code))
+        (do
+          (set! seq (Format.format- (car code) seq))
+          (set! seq (reduce
+            (fn [acc elem]
+                (Format.format-
+                  elem
+                  (cons-last (if (> (Dynamic.length code) 3) 'hardbreak 'softbreak) acc)))
+             seq
+             (cdr code)))))
+      (set! seq (cons-last ")" seq))
+      (set! seq (cons-last 'dedent seq))
+      seq))
+
+  (defndynamic format-array [code seq]
+    (do
+      (set! seq (cons-last "[" seq))
+      (set! seq (cons-last 'indent-to-current seq))
+      (when (not (empty? code))
+        (do
+          (set! seq (Format.format- (car code) seq))
+          (set! seq (reduce
+            (fn [acc elem]
+                (Format.format-
+                  elem
+                  (cons-last (if (> (Dynamic.length code) 5) 'hardbreak 'softbreak) acc)))
+             seq
+             (cdr code)))))
+      (set! seq (cons-last "]" seq))
+      (set! seq (cons-last 'dedent seq))
+      seq))
+
+  (defndynamic format- [code seq]
+    (cond
+      (list? code)
+        (Format.format-list code seq)
+      (array? code)
+        (Format.format-array code seq)
+      (cons-last (str code) seq)))
+
+  (defndynamic treat-softbreak [parts col indentation]
+    (let [next-len (String.length (List.find parts string?))]
+      (if (> (+ col next-len) Format.max-line-width)
+        (String.concat [
+          (String.concat (cons "\n" (n-times (List.sum indentation) (fn [] " "))))
+          (Format.join-parts
+            parts
+            (List.sum indentation)
+            indentation)])
+        (String.concat [
+          " "
+          (Format.join-parts
+            parts
+            (inc col)
+            indentation)]))))
+
+  (defndynamic join-parts [parts col indentation]
+    (cond
+      (empty? parts)
+        ""
+      (string? (car parts))
+        (String.concat [
+          (car parts)
+          (Format.join-parts
+            (cdr parts)
+            (+ col (String.length (car parts)))
+            indentation)])
+      (= (car parts) 'indent)
+        (Format.join-parts
+          (cdr parts)
+          col
+          (cons-last Format.indent-width indentation))
+      (= (car parts) 'dedent)
+        (Format.join-parts (cdr parts) col (all-but-last indentation))
+      (= (car parts) 'indent-to-current)
+        (Format.join-parts
+          (cdr parts)
+          col
+          (cons-last (- col (List.sum indentation)) indentation))
+      (= (car parts) 'hardbreak)
+        (String.concat [
+          (String.concat (cons "\n" (n-times (List.sum indentation) (fn [] " "))))
+          (Format.join-parts
+            (cdr parts)
+            (List.sum indentation)
+            indentation)])
+      (= (car parts) 'softbreak)
+        (Format.treat-softbreak (cdr parts) col indentation)
+      (macro-error (str "Unknown primitive: " (car parts)))))
+
+  (defmacro format [code]
+    (Format.join-parts (Format.format- code '()) 0 '()))
+)
