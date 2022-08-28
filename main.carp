@@ -58,7 +58,7 @@
             (fn [acc elem]
                 (Format.format-
                   elem
-                  (cons-last 'hardbreak 'softbreak acc)))
+                  (cons-last 'hardbreak acc)))
              seq
              (cdr code)))
           (set! seq (cons-last ")" seq))
