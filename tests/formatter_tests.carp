@@ -1,0 +1,68 @@
+(load "main.carp")
+(load-and-use Test)
+
+(deftest formatter_tests
+  (Test.assert-dynamic-equal formatter_tests
+    "(1 2 [1 2 3 4])"
+    (do
+      (set! Format.max-line-width 80)
+      (Format.join-parts (Format.format- '(1 2 [1 2 3 4]) '()) 0 '()))
+    "simple list and array")
+
+  (Test.assert-dynamic-equal formatter_tests
+    "(defn hello [x y]\n  (let [a 1\n        b 2]\n    (IO.println \"hello\")))"
+    (do
+      (set! Format.max-line-width 80)
+      (Format.join-parts (Format.format- '(defn hello [x y] (let [a 1 b 2] (IO.println "hello"))) '()) 0 '()))
+    "defn + let formatting")
+
+  (Test.assert-dynamic-equal formatter_tests
+    "'[1 2 3]"
+    (do
+      (set! Format.max-line-width 80)
+      (Format.join-parts (Format.format- '(quote [1 2 3]) '()) 0 '()))
+    "quote reader macro")
+
+  (Test.assert-dynamic-equal formatter_tests
+    "`[1 %x %@xs]"
+    (do
+      (set! Format.max-line-width 80)
+      (Format.join-parts (Format.format- '(quasiquote [1 (unquote x) (unquote-splicing xs)]) '()) 0 '()))
+    "quasiquote/unquote/unquote-splicing")
+
+  (Test.assert-dynamic-equal formatter_tests
+    "(fn [x]\n  (do\n    (IO.println x)\n    x))"
+    (do
+      (set! Format.max-line-width 80)
+      (Format.join-parts (Format.format- '(fn [x] (do (IO.println x) x)) '()) 0 '()))
+    "fn formatting")
+
+  (Test.assert-dynamic-equal formatter_tests
+    "(defn hello\n  [x y]\n  (IO.println\n    \"hello my dearest friend, how are you doing?\"))"
+    (do
+      (set! Format.max-line-width 10)
+      (Format.join-parts (Format.format- '(defn hello [x y] (IO.println "hello my dearest friend, how are you doing?")) '()) 0 '()))
+    "softbreak at narrow width")
+
+  (Test.assert-dynamic-equal formatter_tests
+    "(Map.from-array [(Pair.init a 1) (Pair.init b 2)])"
+    (do
+      (set! Format.max-line-width 80)
+      (Format.join-parts
+        (Format.format- '(Map.from-array [(Pair.init a 1) (Pair.init b 2)]) '())
+        0
+        '()))
+    "map reader form")
+
+  (Test.assert-dynamic-equal formatter_tests
+    "(Map.from-array [(Pair.init a 1) (Pair.init b 2) (Pair.init c 3) (Pair.init d 4)\n                 (Pair.init e 5)])"
+    (do
+      (set! Format.max-line-width 80)
+      (Format.join-parts
+        (Format.format-
+          '(Map.from-array
+             [(Pair.init a 1) (Pair.init b 2) (Pair.init c 3) (Pair.init d 4) (Pair.init e 5)])
+          '())
+        0
+        '()))
+    "map hardbreak threshold"))
